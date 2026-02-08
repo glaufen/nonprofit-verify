@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RevenueBreakdown(BaseModel):
@@ -70,6 +70,24 @@ class VerifyResponse(BaseModel):
     state_registrations: list[StateRegistration] = []
     data_sources: DataSources = DataSources()
     propublica_url: str | None = None
+
+
+class BatchVerifyRequest(BaseModel):
+    eins: list[str] = Field(min_length=1)
+
+
+class BatchVerifyResult(BaseModel):
+    ein: str
+    success: bool
+    data: VerifyResponse | None = None
+    error: str | None = None
+
+
+class BatchVerifyResponse(BaseModel):
+    total: int
+    succeeded: int
+    failed: int
+    results: list[BatchVerifyResult]
 
 
 class ErrorResponse(BaseModel):
