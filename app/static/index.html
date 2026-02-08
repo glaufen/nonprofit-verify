@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NonprofitVerify API - Verify Any US Nonprofit in One API Call</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a1a2e; line-height: 1.6; }
+  a { color: #4361ee; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .hero { text-align: center; padding: 80px 20px 60px; background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%); }
+  .hero h1 { font-size: 2.5rem; margin-bottom: 16px; color: #1a1a2e; }
+  .hero p { font-size: 1.2rem; color: #555; max-width: 600px; margin: 0 auto 32px; }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; padding: 60px 20px; max-width: 1000px; margin: 0 auto; }
+  .feature { text-align: center; padding: 24px; }
+  .feature h3 { margin-bottom: 8px; font-size: 1.1rem; }
+  .feature p { color: #666; font-size: 0.95rem; }
+
+  .code-section { background: #1a1a2e; color: #e0e0e0; padding: 60px 20px; }
+  .code-section h2 { text-align: center; color: #fff; margin-bottom: 32px; }
+  .code-block { max-width: 700px; margin: 0 auto; background: #0d0d1a; border-radius: 8px; padding: 24px; overflow-x: auto; font-family: "SF Mono", "Fira Code", monospace; font-size: 0.85rem; line-height: 1.7; }
+  .code-block .comment { color: #6a7080; }
+  .code-block .string { color: #a8d8a8; }
+  .code-block .key { color: #82aaff; }
+  .code-block .number { color: #f78c6c; }
+
+  .pricing { padding: 60px 20px; text-align: center; }
+  .pricing h2 { margin-bottom: 40px; font-size: 2rem; }
+  .pricing-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 960px; margin: 0 auto; }
+  .card { border: 2px solid #e0e0e0; border-radius: 12px; padding: 32px 24px; display: flex; flex-direction: column; }
+  .card.featured { border-color: #4361ee; position: relative; }
+  .card.featured::before { content: "Most Popular"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #4361ee; color: #fff; padding: 2px 16px; border-radius: 12px; font-size: 0.8rem; }
+  .card h3 { font-size: 1.3rem; margin-bottom: 8px; }
+  .card .price { font-size: 2.2rem; font-weight: 700; margin-bottom: 4px; }
+  .card .price span { font-size: 1rem; font-weight: 400; color: #666; }
+  .card .limit { color: #666; margin-bottom: 24px; font-size: 0.95rem; }
+  .card ul { list-style: none; text-align: left; margin-bottom: 24px; flex-grow: 1; }
+  .card ul li { padding: 6px 0; font-size: 0.95rem; }
+  .card ul li::before { content: "\2713 "; color: #4361ee; font-weight: 700; }
+  .btn { display: inline-block; padding: 12px 32px; border-radius: 8px; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; text-align: center; }
+  .btn-primary { background: #4361ee; color: #fff; }
+  .btn-primary:hover { background: #3451d1; text-decoration: none; }
+  .btn-outline { background: #fff; color: #4361ee; border: 2px solid #4361ee; }
+  .btn-outline:hover { background: #f0f4ff; text-decoration: none; }
+
+  .free-form { padding: 60px 20px; background: #f8f9fa; text-align: center; }
+  .free-form h2 { margin-bottom: 8px; }
+  .free-form p { color: #666; margin-bottom: 24px; }
+  .form-row { display: flex; gap: 12px; max-width: 500px; margin: 0 auto 12px; flex-wrap: wrap; justify-content: center; }
+  .form-row input { padding: 10px 16px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; flex: 1; min-width: 180px; }
+  .form-row input:focus { outline: none; border-color: #4361ee; }
+  #free-result { margin-top: 16px; }
+  .key-display { background: #1a1a2e; color: #a8d8a8; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 0.9rem; word-break: break-all; max-width: 500px; margin: 12px auto 0; }
+  .key-display .warning { color: #f78c6c; font-size: 0.85rem; margin-top: 8px; }
+
+  footer { text-align: center; padding: 40px 20px; color: #888; font-size: 0.9rem; }
+  footer a { color: #4361ee; }
+
+  #free-error { color: #e74c3c; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <h1>Verify Any US Nonprofit in One API Call</h1>
+  <p>IRS tax status, 990 financials, key personnel, and state registrations &mdash; all from a single EIN lookup.</p>
+  <a href="#pricing" class="btn btn-primary">Get Your API Key</a>
+</section>
+
+<section class="features">
+  <div class="feature">
+    <h3>Tax Status</h3>
+    <p>Real-time 501(c)(3) verification with subsection codes and ruling dates.</p>
+  </div>
+  <div class="feature">
+    <h3>990 Financials</h3>
+    <p>Revenue, expenses, assets, and liabilities parsed from IRS e-file data.</p>
+  </div>
+  <div class="feature">
+    <h3>Key Personnel</h3>
+    <p>Officers, directors, and highest-compensated employees from 990 filings.</p>
+  </div>
+  <div class="feature">
+    <h3>State Registrations</h3>
+    <p>Charity registration status from California, New York, and Texas.</p>
+  </div>
+</section>
+
+<section class="code-section">
+  <h2>Simple to Integrate</h2>
+  <div class="code-block">
+    <span class="comment"># One request, complete nonprofit data</span><br>
+    curl -H <span class="string">"X-Api-Key: npv_your_key"</span> \<br>
+    &nbsp;&nbsp;https://api.nonprofitverify.com/api/v1/verify/53-0196605<br>
+    <br>
+    <span class="comment"># Response</span><br>
+    {<br>
+    &nbsp;&nbsp;<span class="key">"ein"</span>: <span class="string">"53-0196605"</span>,<br>
+    &nbsp;&nbsp;<span class="key">"legal_name"</span>: <span class="string">"AMERICAN NATIONAL RED CROSS"</span>,<br>
+    &nbsp;&nbsp;<span class="key">"status"</span>: <span class="string">"active"</span>,<br>
+    &nbsp;&nbsp;<span class="key">"subsection_code"</span>: <span class="number">3</span>,<br>
+    &nbsp;&nbsp;<span class="key">"ruling_date"</span>: <span class="string">"1946-07"</span>,<br>
+    &nbsp;&nbsp;<span class="key">"financials"</span>: { <span class="key">"total_revenue"</span>: <span class="number">3440000000</span>, ... },<br>
+    &nbsp;&nbsp;<span class="key">"personnel"</span>: [ ... ],<br>
+    &nbsp;&nbsp;<span class="key">"state_registrations"</span>: { ... }<br>
+    }
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <h2>Pricing</h2>
+  <div class="pricing-cards">
+    <div class="card">
+      <h3>Free</h3>
+      <div class="price">$0</div>
+      <div class="limit">100 requests / month</div>
+      <ul>
+        <li>Full verification data</li>
+        <li>Single & batch lookups</li>
+        <li>7-day cached responses</li>
+      </ul>
+      <a href="#free-signup" class="btn btn-outline">Get Free Key</a>
+    </div>
+    <div class="card featured">
+      <h3>Pro</h3>
+      <div class="price">$49<span>/mo</span></div>
+      <div class="limit">1,000 requests / month</div>
+      <ul>
+        <li>Everything in Free</li>
+        <li>990 financials & personnel</li>
+        <li>State registrations</li>
+        <li>Priority support</li>
+      </ul>
+      <a href="/api/v1/checkout/pro" class="btn btn-primary">Subscribe</a>
+    </div>
+    <div class="card">
+      <h3>Enterprise</h3>
+      <div class="price">$199<span>/mo</span></div>
+      <div class="limit">Unlimited requests</div>
+      <ul>
+        <li>Everything in Pro</li>
+        <li>Unlimited API calls</li>
+        <li>Dedicated support</li>
+        <li>Custom integrations</li>
+      </ul>
+      <a href="/api/v1/checkout/enterprise" class="btn btn-primary">Subscribe</a>
+    </div>
+  </div>
+</section>
+
+<section class="free-form" id="free-signup">
+  <h2>Get Your Free API Key</h2>
+  <p>No credit card required. 100 requests per month.</p>
+  <form id="free-key-form">
+    <div class="form-row">
+      <input type="text" id="name" placeholder="Your name" required>
+      <input type="email" id="email" placeholder="Email address" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Create API Key</button>
+  </form>
+  <div id="free-error"></div>
+  <div id="free-result"></div>
+</section>
+
+<footer>
+  <p><a href="/docs">API Documentation</a></p>
+</footer>
+
+<script>
+document.getElementById('free-key-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const errEl = document.getElementById('free-error');
+  const resultEl = document.getElementById('free-result');
+  errEl.textContent = '';
+  resultEl.innerHTML = '';
+
+  try {
+    const res = await fetch('/api/v1/keys/free', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.detail || 'Something went wrong.';
+      return;
+    }
+    resultEl.innerHTML = '<div class="key-display">' + data.api_key +
+      '<div class="warning">Save this key now &mdash; we cannot show it again.</div></div>';
+  } catch (err) {
+    errEl.textContent = 'Network error. Please try again.';
+  }
+});
+</script>
+
+</body>
+</html>

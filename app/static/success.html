@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NonprofitVerify - Payment Successful</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a1a2e; line-height: 1.6; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f4ff; padding: 20px; }
+  .card { background: #fff; border-radius: 12px; padding: 48px 36px; max-width: 540px; width: 100%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  .subtitle { color: #666; margin-bottom: 32px; }
+  .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #e0e0e0; border-top-color: #4361ee; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading p { color: #888; }
+  .key-display { background: #1a1a2e; color: #a8d8a8; padding: 20px; border-radius: 8px; font-family: "SF Mono", "Fira Code", monospace; font-size: 0.9rem; word-break: break-all; text-align: left; margin: 20px 0; position: relative; }
+  .warning { color: #f78c6c; font-size: 0.85rem; margin-top: 12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .copy-btn { position: absolute; top: 8px; right: 8px; background: #4361ee; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+  .copy-btn:hover { background: #3451d1; }
+  .quickstart { background: #f8f9fa; border-radius: 8px; padding: 16px; margin-top: 20px; text-align: left; }
+  .quickstart h3 { font-size: 0.95rem; margin-bottom: 8px; }
+  .quickstart code { display: block; background: #1a1a2e; color: #e0e0e0; padding: 12px; border-radius: 6px; font-size: 0.8rem; overflow-x: auto; white-space: pre; }
+  .btn { display: inline-block; padding: 10px 24px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; background: #4361ee; color: #fff; text-decoration: none; margin-top: 20px; }
+  .btn:hover { background: #3451d1; }
+  .error { color: #e74c3c; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Payment Successful</h1>
+  <p class="subtitle">Your API key is being provisioned.</p>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Waiting for confirmation...</p>
+  </div>
+
+  <div id="result" class="hidden">
+    <div class="key-display">
+      <span id="api-key"></span>
+      <button class="copy-btn" onclick="copyKey()">Copy</button>
+      <div class="warning">Save this key now &mdash; we cannot show it again.</div>
+    </div>
+    <div class="quickstart">
+      <h3>Quick Start</h3>
+      <code>curl -H "X-Api-Key: <span id="key-example"></span>" \
+  https://api.nonprofitverify.com/api/v1/verify/53-0196605</code>
+    </div>
+    <a href="/docs" class="btn">View API Docs</a>
+  </div>
+
+  <div id="error" class="hidden">
+    <p class="error">Something went wrong retrieving your key. Please contact support.</p>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const sessionId = params.get('session_id');
+let attempts = 0;
+const maxAttempts = 60;
+
+async function pollForKey() {
+  if (!sessionId) {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('error').classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/v1/keys/checkout/' + encodeURIComponent(sessionId));
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('api-key').textContent = data.api_key;
+      document.getElementById('key-example').textContent = data.api_key;
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+      return;
+    }
+  } catch (e) {}
+
+  attempts++;
+  if (attempts >= maxAttempts) {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('error').classList.remove('hidden');
+    return;
+  }
+  setTimeout(pollForKey, 2000);
+}
+
+function copyKey() {
+  const key = document.getElementById('api-key').textContent;
+  navigator.clipboard.writeText(key);
+  const btn = document.querySelector('.copy-btn');
+  btn.textContent = 'Copied!';
+  setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+}
+
+pollForKey();
+</script>
+
+</body>
+</html>
