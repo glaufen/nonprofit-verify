@@ -128,6 +128,7 @@ async def verify_organization(ein_raw: str) -> VerifyResponse | None:
         propublica=date.today().isoformat(),
         irs_bmf=irs_bmf_date,
         irs_990=str(filings[0]["tax_prd_yr"]) if filings and "tax_prd_yr" in filings[0] else None,
+        state_registries=date.today().isoformat() if state_regs else None,
     )
 
     return VerifyResponse(

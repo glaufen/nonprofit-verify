@@ -53,6 +53,7 @@ class DataSources(BaseModel):
     irs_bmf: str | None = None
     irs_990: str | None = None
     propublica: str | None = None
+    state_registries: str | None = None
 
 
 class VerifyResponse(BaseModel):

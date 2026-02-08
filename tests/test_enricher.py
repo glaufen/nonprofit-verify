@@ -60,19 +60,21 @@ MOCK_FILING_DATA = {
 
 
 def _patch_enricher():
-    """Patch both propublica and irs_990 in the enricher module."""
+    """Patch propublica, irs_990, and state_registry in the enricher module."""
     return (
         patch("app.services.enricher.propublica.fetch_organization", new_callable=AsyncMock),
         patch("app.services.enricher.irs_990.get_filing_data", new_callable=AsyncMock),
+        patch("app.services.enricher.state_registry.check_all_states", new_callable=AsyncMock),
     )
 
 
 @pytest.mark.asyncio
 async def test_verify_returns_structured_response():
-    p1, p2 = _patch_enricher()
-    with p1 as mock_pp, p2 as mock_990:
+    p1, p2, p3 = _patch_enricher()
+    with p1 as mock_pp, p2 as mock_990, p3 as mock_state:
         mock_pp.return_value = MOCK_PROPUBLICA
         mock_990.return_value = MOCK_FILING_DATA
+        mock_state.return_value = []
         result = await verify_organization("53-0196605")
 
     assert result is not None
@@ -91,18 +93,19 @@ async def test_verify_returns_structured_response():
 
 @pytest.mark.asyncio
 async def test_verify_not_found_returns_none():
-    p1, p2 = _patch_enricher()
-    with p1 as mock_pp, p2 as mock_990:
+    p1, p2, p3 = _patch_enricher()
+    with p1 as mock_pp, p2 as mock_990, p3 as mock_state:
         mock_pp.return_value = None
         mock_990.return_value = None
+        mock_state.return_value = []
         result = await verify_organization("99-9999999")
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_verify_no_filings_no_officers():
-    p1, p2 = _patch_enricher()
-    with p1 as mock_pp, p2 as mock_990:
+    p1, p2, p3 = _patch_enricher()
+    with p1 as mock_pp, p2 as mock_990, p3 as mock_state:
         mock_pp.return_value = {
             "organization": {
                 "ein": 123456789,
@@ -118,6 +121,7 @@ async def test_verify_no_filings_no_officers():
             "filings_with_data": [],
         }
         mock_990.return_value = None
+        mock_state.return_value = []
         result = await verify_organization("12-3456789")
 
     assert result is not None
@@ -135,10 +139,11 @@ async def test_verify_invalid_ein():
 
 @pytest.mark.asyncio
 async def test_verify_includes_revenue_breakdown():
-    p1, p2 = _patch_enricher()
-    with p1 as mock_pp, p2 as mock_990:
+    p1, p2, p3 = _patch_enricher()
+    with p1 as mock_pp, p2 as mock_990, p3 as mock_state:
         mock_pp.return_value = MOCK_PROPUBLICA
         mock_990.return_value = MOCK_FILING_DATA
+        mock_state.return_value = []
         result = await verify_organization("53-0196605")
 
     assert result.financials is not None
@@ -159,10 +164,11 @@ async def test_verify_includes_revenue_breakdown():
 
 @pytest.mark.asyncio
 async def test_verify_schedule_j_attached_to_person():
-    p1, p2 = _patch_enricher()
-    with p1 as mock_pp, p2 as mock_990:
+    p1, p2, p3 = _patch_enricher()
+    with p1 as mock_pp, p2 as mock_990, p3 as mock_state:
         mock_pp.return_value = MOCK_PROPUBLICA
         mock_990.return_value = MOCK_FILING_DATA
+        mock_state.return_value = []
         result = await verify_organization("53-0196605")
 
     jane = result.personnel[0]
@@ -183,10 +189,11 @@ async def test_verify_schedule_j_attached_to_person():
 @pytest.mark.asyncio
 async def test_verify_no_990_data_backward_compat():
     """When get_filing_data returns None, response should still work (backward compat)."""
-    p1, p2 = _patch_enricher()
-    with p1 as mock_pp, p2 as mock_990:
+    p1, p2, p3 = _patch_enricher()
+    with p1 as mock_pp, p2 as mock_990, p3 as mock_state:
         mock_pp.return_value = MOCK_PROPUBLICA
         mock_990.return_value = None
+        mock_state.return_value = []
         result = await verify_organization("53-0196605")
 
     assert result is not None
@@ -195,3 +202,41 @@ async def test_verify_no_990_data_backward_compat():
     assert result.financials.revenue_breakdown is None
     assert result.financials.expense_breakdown is None
     assert result.personnel == []
+
+
+@pytest.mark.asyncio
+async def test_verify_state_registrations_populated():
+    """State registrations flow through from check_all_states to response."""
+    p1, p2, p3 = _patch_enricher()
+    with p1 as mock_pp, p2 as mock_990, p3 as mock_state:
+        mock_pp.return_value = MOCK_PROPUBLICA
+        mock_990.return_value = None
+        mock_state.return_value = [
+            {"state": "CA", "status": "Current", "registration_number": "CT-0012345"},
+            {"state": "NY", "status": "Registered (NFP)", "registration_number": "11-30-97"},
+        ]
+        result = await verify_organization("53-0196605")
+
+    assert result is not None
+    assert len(result.state_registrations) == 2
+    assert result.state_registrations[0].state == "CA"
+    assert result.state_registrations[0].status == "Current"
+    assert result.state_registrations[0].registration_number == "CT-0012345"
+    assert result.state_registrations[1].state == "NY"
+    assert result.state_registrations[1].registration_number == "11-30-97"
+    assert result.data_sources.state_registries is not None
+
+
+@pytest.mark.asyncio
+async def test_verify_no_state_registrations():
+    """Empty state registrations → data_sources.state_registries is None."""
+    p1, p2, p3 = _patch_enricher()
+    with p1 as mock_pp, p2 as mock_990, p3 as mock_state:
+        mock_pp.return_value = MOCK_PROPUBLICA
+        mock_990.return_value = None
+        mock_state.return_value = []
+        result = await verify_organization("53-0196605")
+
+    assert result is not None
+    assert result.state_registrations == []
+    assert result.data_sources.state_registries is None
