@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 
 from app.database import close_pool, get_pool
 from app.routes.billing import router as billing_router
+from app.routes.public import router as public_router
 from app.routes.verify import router as verify_router
 from app.utils.cache import close_redis, get_redis
 
@@ -28,6 +29,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(public_router, prefix="/api/v1", tags=["Public"])
 app.include_router(verify_router, prefix="/api/v1", tags=["Verify"])
 app.include_router(billing_router, prefix="/api/v1", tags=["Billing"])
 

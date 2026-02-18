@@ -3,32 +3,99 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NonprofitVerify API - Verify Any US Nonprofit in One API Call</title>
+<title>NonprofitVerify - Verify Any US Nonprofit</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a1a2e; line-height: 1.6; }
   a { color: #4361ee; text-decoration: none; }
   a:hover { text-decoration: underline; }
 
-  .hero { text-align: center; padding: 80px 20px 60px; background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%); }
-  .hero h1 { font-size: 2.5rem; margin-bottom: 16px; color: #1a1a2e; }
-  .hero p { font-size: 1.2rem; color: #555; max-width: 600px; margin: 0 auto 32px; }
+  /* Search hero */
+  .hero { text-align: center; padding: 60px 20px 50px; background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%); }
+  .hero h1 { font-size: 2.2rem; margin-bottom: 8px; color: #1a1a2e; }
+  .hero .subtitle { font-size: 1.1rem; color: #555; margin-bottom: 32px; }
+  .search-box { display: flex; gap: 0; max-width: 520px; margin: 0 auto; }
+  .search-box input { flex: 1; padding: 14px 20px; border: 2px solid #d0d5e8; border-right: none; border-radius: 10px 0 0 10px; font-size: 1.05rem; outline: none; }
+  .search-box input:focus { border-color: #4361ee; }
+  .search-box button { padding: 14px 28px; background: #4361ee; color: #fff; border: 2px solid #4361ee; border-radius: 0 10px 10px 0; font-size: 1.05rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .search-box button:hover { background: #3451d1; border-color: #3451d1; }
+  .search-box button:disabled { opacity: 0.7; cursor: not-allowed; }
+  .search-hint { font-size: 0.85rem; color: #888; margin-top: 10px; }
 
+  /* Results */
+  .results-area { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+  #search-error { color: #e74c3c; text-align: center; margin-top: 20px; font-size: 0.95rem; }
+  #search-loading { text-align: center; margin-top: 30px; color: #555; font-size: 1rem; display: none; }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #d0d5e8; border-top-color: #4361ee; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .result-card { background: #fff; border: 1px solid #e0e4ef; border-radius: 12px; margin-top: 24px; margin-bottom: 40px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .result-header { padding: 24px 28px 20px; border-bottom: 1px solid #eee; }
+  .result-header h2 { font-size: 1.4rem; margin-bottom: 4px; }
+  .result-header .meta { color: #666; font-size: 0.95rem; }
+  .status-badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; margin-left: 8px; vertical-align: middle; }
+  .status-active { background: #d4edda; color: #155724; }
+  .status-revoked { background: #f8d7da; color: #721c24; }
+  .status-unknown { background: #fff3cd; color: #856404; }
+
+  .result-section { padding: 20px 28px; border-bottom: 1px solid #f0f0f0; }
+  .result-section:last-child { border-bottom: none; }
+  .result-section h3 { font-size: 1rem; color: #4361ee; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+
+  .fin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+  .fin-item { text-align: center; }
+  .fin-item .label { font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .fin-item .value { font-size: 1.3rem; font-weight: 700; color: #1a1a2e; }
+  .fin-item .value.revenue { color: #27ae60; }
+  .fin-item .value.expense { color: #e74c3c; }
+
+  .breakdown { margin-top: 16px; }
+  .breakdown-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.9rem; color: #555; }
+  .breakdown-row .breakdown-label { color: #666; }
+  .breakdown-row .breakdown-value { font-weight: 600; color: #1a1a2e; }
+
+  .personnel-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .personnel-table th { text-align: left; color: #888; font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 0 0 8px; border-bottom: 1px solid #eee; }
+  .personnel-table td { padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+  .personnel-table tr:last-child td { border-bottom: none; }
+  .personnel-table .name { font-weight: 600; }
+  .personnel-table .title-col { color: #666; }
+  .personnel-table .comp { text-align: right; font-weight: 600; white-space: nowrap; }
+  .show-more { color: #4361ee; cursor: pointer; font-size: 0.9rem; margin-top: 8px; display: inline-block; border: none; background: none; font-family: inherit; }
+  .show-more:hover { text-decoration: underline; }
+
+  .state-list { list-style: none; }
+  .state-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.9rem; }
+  .state-list li:last-child { border-bottom: none; }
+  .state-name { font-weight: 600; }
+  .state-status { color: #27ae60; }
+  .state-reg { color: #888; font-size: 0.85rem; }
+  .no-data { color: #999; font-style: italic; font-size: 0.9rem; }
+
+  .data-sources { display: flex; flex-wrap: wrap; gap: 12px; }
+  .source-tag { background: #f0f4ff; color: #4361ee; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+
+  /* Divider */
+  .section-divider { border: none; border-top: 2px solid #e8eeff; margin: 0; }
+
+  /* Features */
   .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
-
   .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; padding: 60px 20px; max-width: 1000px; margin: 0 auto; }
   .feature { text-align: center; padding: 24px; }
   .feature h3 { margin-bottom: 8px; font-size: 1.1rem; }
   .feature p { color: #666; font-size: 0.95rem; }
 
+  /* Code section */
   .code-section { background: #1a1a2e; color: #e0e0e0; padding: 60px 20px; }
-  .code-section h2 { text-align: center; color: #fff; margin-bottom: 32px; }
+  .code-section h2 { text-align: center; color: #fff; margin-bottom: 8px; }
+  .code-section .subtitle { text-align: center; color: #888; margin-bottom: 32px; font-size: 0.95rem; }
   .code-block { max-width: 700px; margin: 0 auto; background: #0d0d1a; border-radius: 8px; padding: 24px; overflow-x: auto; font-family: "SF Mono", "Fira Code", monospace; font-size: 0.85rem; line-height: 1.7; }
   .code-block .comment { color: #6a7080; }
   .code-block .string { color: #a8d8a8; }
   .code-block .key { color: #82aaff; }
   .code-block .number { color: #f78c6c; }
 
+  /* Pricing */
   .pricing { padding: 60px 20px; text-align: center; }
   .pricing h2 { margin-bottom: 40px; font-size: 2rem; }
   .pricing-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 960px; margin: 0 auto; }
@@ -48,6 +115,7 @@
   .btn-outline { background: #fff; color: #4361ee; border: 2px solid #4361ee; }
   .btn-outline:hover { background: #f0f4ff; text-decoration: none; }
 
+  /* Free signup */
   .free-form { padding: 60px 20px; background: #f8f9fa; text-align: center; }
   .free-form h2 { margin-bottom: 8px; }
   .free-form p { color: #666; margin-bottom: 24px; }
@@ -60,17 +128,37 @@
 
   footer { text-align: center; padding: 40px 20px; color: #888; font-size: 0.9rem; }
   footer a { color: #4361ee; }
-
   #free-error { color: #e74c3c; margin-top: 8px; }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 1.6rem; }
+    .search-box { flex-direction: column; gap: 8px; }
+    .search-box input { border-right: 2px solid #d0d5e8; border-radius: 10px; }
+    .search-box button { border-radius: 10px; }
+    .fin-grid { grid-template-columns: repeat(2, 1fr); }
+    .personnel-table .title-col { display: none; }
+  }
 </style>
 </head>
 <body>
 
 <section class="hero">
-  <h1>Verify Any US Nonprofit in One API Call</h1>
-  <p>IRS tax status, 990 financials, key personnel, and state registrations &mdash; all from a single EIN lookup.</p>
-  <a href="#pricing" class="btn btn-primary">Get Your API Key</a>
+  <h1>Verify Any US Nonprofit</h1>
+  <p class="subtitle">Enter an EIN to see tax status, financials, key personnel, and state registrations.</p>
+  <div class="search-box">
+    <input type="text" id="search-input" placeholder="Enter EIN (e.g. 53-0196605)" autofocus>
+    <button id="search-btn" onclick="doSearch()">Search</button>
+  </div>
+  <p class="search-hint">Try: 53-0196605 (American Red Cross) or 13-1837418 (Salvation Army)</p>
 </section>
+
+<div class="results-area">
+  <div id="search-loading"><span class="spinner"></span>Searching IRS records, 990 filings, and state registries...</div>
+  <div id="search-error"></div>
+  <div id="search-results"></div>
+</div>
+
+<hr class="section-divider">
 
 <section class="features">
   <div class="feature">
@@ -92,28 +180,28 @@
 </section>
 
 <section class="code-section">
-  <h2>Simple to Integrate</h2>
+  <h2>Build With the API</h2>
+  <p class="subtitle">Everything above is available programmatically. One endpoint, complete nonprofit data.</p>
   <div class="code-block">
     <span class="comment"># One request, complete nonprofit data</span><br>
     curl -H <span class="string">"X-Api-Key: npv_your_key"</span> \<br>
-    &nbsp;&nbsp;https://api.nonprofitverify.com/api/v1/verify/53-0196605<br>
+    &nbsp;&nbsp;https://verify.georgelaufenberg.com/api/v1/verify/53-0196605<br>
     <br>
     <span class="comment"># Response</span><br>
     {<br>
     &nbsp;&nbsp;<span class="key">"ein"</span>: <span class="string">"53-0196605"</span>,<br>
-    &nbsp;&nbsp;<span class="key">"legal_name"</span>: <span class="string">"AMERICAN NATIONAL RED CROSS"</span>,<br>
+    &nbsp;&nbsp;<span class="key">"legal_name"</span>: <span class="string">"American National Red Cross"</span>,<br>
     &nbsp;&nbsp;<span class="key">"status"</span>: <span class="string">"active"</span>,<br>
-    &nbsp;&nbsp;<span class="key">"subsection_code"</span>: <span class="number">3</span>,<br>
-    &nbsp;&nbsp;<span class="key">"ruling_date"</span>: <span class="string">"1946-07"</span>,<br>
-    &nbsp;&nbsp;<span class="key">"financials"</span>: { <span class="key">"total_revenue"</span>: <span class="number">3440000000</span>, ... },<br>
+    &nbsp;&nbsp;<span class="key">"subsection"</span>: <span class="string">"501(c)(3)"</span>,<br>
+    &nbsp;&nbsp;<span class="key">"financials"</span>: { <span class="key">"revenue"</span>: <span class="number">3217077611</span>, ... },<br>
     &nbsp;&nbsp;<span class="key">"personnel"</span>: [ ... ],<br>
-    &nbsp;&nbsp;<span class="key">"state_registrations"</span>: { ... }<br>
+    &nbsp;&nbsp;<span class="key">"state_registrations"</span>: [ ... ]<br>
     }
   </div>
 </section>
 
 <section class="pricing" id="pricing">
-  <h2>Pricing</h2>
+  <h2>API Pricing</h2>
   <div class="pricing-cards">
     <div class="card">
       <h3>Free</h3>
@@ -172,6 +260,171 @@
 </footer>
 
 <script>
+function fmt(n) {
+  if (n == null) return '--';
+  if (Math.abs(n) >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B';
+  if (Math.abs(n) >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K';
+  return '$' + n.toLocaleString();
+}
+
+function fmtComp(n) {
+  if (n == null || n === 0) return '--';
+  return '$' + n.toLocaleString();
+}
+
+function titleCase(s) {
+  if (!s) return '';
+  return s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function statusClass(status) {
+  if (status === 'active') return 'status-active';
+  if (status === 'revoked') return 'status-revoked';
+  return 'status-unknown';
+}
+
+function renderResults(d) {
+  const f = d.financials || {};
+  const rb = f.revenue_breakdown || {};
+  const eb = f.expense_breakdown || {};
+  const personnel = d.personnel || [];
+  const states = d.state_registrations || [];
+  const sources = d.data_sources || {};
+
+  // Personnel: show top 5 by default
+  const showInitial = 5;
+  const hasMore = personnel.length > showInitial;
+
+  let personnelRows = personnel.map((p, i) => `
+    <tr class="person-row" ${i >= showInitial ? 'style="display:none"' : ''}>
+      <td class="name">${titleCase(p.name)}</td>
+      <td class="title-col">${titleCase(p.title)}</td>
+      <td class="comp">${fmtComp(p.compensation)}</td>
+    </tr>`).join('');
+
+  let breakdownHtml = '';
+  if (rb.contributions_and_grants != null || rb.program_service_revenue != null) {
+    breakdownHtml += `<div class="breakdown">
+      <div class="breakdown-row"><span class="breakdown-label">Contributions & Grants</span><span class="breakdown-value">${fmt(rb.contributions_and_grants)}</span></div>
+      <div class="breakdown-row"><span class="breakdown-label">Program Service Revenue</span><span class="breakdown-value">${fmt(rb.program_service_revenue)}</span></div>
+      <div class="breakdown-row"><span class="breakdown-label">Investment Income</span><span class="breakdown-value">${fmt(rb.investment_income)}</span></div>
+      <div class="breakdown-row"><span class="breakdown-label">Other Revenue</span><span class="breakdown-value">${fmt(rb.other_revenue)}</span></div>
+    </div>`;
+  }
+  if (eb.program_services != null || eb.fundraising != null) {
+    breakdownHtml += `<div class="breakdown" style="margin-top:12px">
+      <div class="breakdown-row"><span class="breakdown-label">Program Services</span><span class="breakdown-value">${fmt(eb.program_services)}</span></div>
+      <div class="breakdown-row"><span class="breakdown-label">Management & General</span><span class="breakdown-value">${fmt(eb.management_and_general)}</span></div>
+      <div class="breakdown-row"><span class="breakdown-label">Fundraising</span><span class="breakdown-value">${fmt(eb.fundraising)}</span></div>
+    </div>`;
+  }
+
+  let statesHtml = states.length > 0
+    ? `<ul class="state-list">${states.map(s => `<li>
+        <span><span class="state-name">${s.state}</span> ${s.registration_number ? `<span class="state-reg">#${s.registration_number}</span>` : ''}</span>
+        <span class="state-status">${s.status}</span>
+      </li>`).join('')}</ul>`
+    : '<p class="no-data">No state registrations found (checked CA, NY, TX)</p>';
+
+  let sourceTags = '';
+  if (sources.irs_bmf) sourceTags += `<span class="source-tag">IRS BMF ${sources.irs_bmf}</span>`;
+  if (sources.irs_990) sourceTags += `<span class="source-tag">990 Filing ${sources.irs_990}</span>`;
+  if (sources.propublica) sourceTags += `<span class="source-tag">ProPublica</span>`;
+  if (sources.state_registries) sourceTags += `<span class="source-tag">State Registries</span>`;
+
+  return `<div class="result-card">
+    <div class="result-header">
+      <h2>${d.legal_name} <span class="status-badge ${statusClass(d.status)}">${d.status}</span></h2>
+      <div class="meta">
+        EIN ${d.ein} &middot; ${d.subsection || 'Unknown subsection'} &middot; ${d.city}, ${d.state}
+        ${d.ruling_date ? ` &middot; Ruling date: ${d.ruling_date}` : ''}
+      </div>
+    </div>
+
+    ${f.revenue != null ? `<div class="result-section">
+      <h3>Financials ${f.tax_year ? '(' + f.tax_year + ')' : ''}</h3>
+      <div class="fin-grid">
+        <div class="fin-item"><div class="label">Revenue</div><div class="value revenue">${fmt(f.revenue)}</div></div>
+        <div class="fin-item"><div class="label">Expenses</div><div class="value expense">${fmt(f.expenses)}</div></div>
+        <div class="fin-item"><div class="label">Assets</div><div class="value">${fmt(f.assets)}</div></div>
+        <div class="fin-item"><div class="label">Liabilities</div><div class="value">${fmt(f.liabilities)}</div></div>
+      </div>
+      ${breakdownHtml}
+    </div>` : ''}
+
+    ${personnel.length > 0 ? `<div class="result-section">
+      <h3>Key Personnel</h3>
+      <table class="personnel-table">
+        <thead><tr><th>Name</th><th class="title-col">Title</th><th style="text-align:right">Compensation</th></tr></thead>
+        <tbody>${personnelRows}</tbody>
+      </table>
+      ${hasMore ? `<button class="show-more" onclick="togglePersonnel(this)">Show all ${personnel.length} people</button>` : ''}
+    </div>` : ''}
+
+    <div class="result-section">
+      <h3>State Registrations</h3>
+      ${statesHtml}
+    </div>
+
+    <div class="result-section">
+      <h3>Data Sources</h3>
+      <div class="data-sources">${sourceTags}</div>
+      ${d.propublica_url ? `<p style="margin-top:10px;font-size:0.85rem"><a href="${d.propublica_url}" target="_blank">View on ProPublica Nonprofit Explorer</a></p>` : ''}
+    </div>
+  </div>`;
+}
+
+function togglePersonnel(btn) {
+  const rows = btn.closest('.result-section').querySelectorAll('.person-row');
+  const hidden = rows[5] && rows[5].style.display === 'none';
+  rows.forEach((r, i) => {
+    if (i >= 5) r.style.display = hidden ? '' : 'none';
+  });
+  btn.textContent = hidden ? 'Show fewer' : `Show all ${rows.length} people`;
+}
+
+async function doSearch() {
+  const input = document.getElementById('search-input');
+  const ein = input.value.trim();
+  if (!ein) return;
+
+  const btn = document.getElementById('search-btn');
+  const loading = document.getElementById('search-loading');
+  const errorEl = document.getElementById('search-error');
+  const resultsEl = document.getElementById('search-results');
+
+  errorEl.textContent = '';
+  resultsEl.innerHTML = '';
+  loading.style.display = 'block';
+  btn.disabled = true;
+  btn.textContent = 'Searching...';
+
+  try {
+    const res = await fetch(`/api/v1/public/verify/${encodeURIComponent(ein)}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorEl.textContent = data.detail || 'Something went wrong.';
+      return;
+    }
+
+    resultsEl.innerHTML = renderResults(data);
+  } catch (err) {
+    errorEl.textContent = 'Network error. Please try again.';
+  } finally {
+    loading.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = 'Search';
+  }
+}
+
+// Search on Enter
+document.getElementById('search-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doSearch();
+});
+
+// Free key form
 document.getElementById('free-key-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('name').value.trim();
