@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NonprofitVerify</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a1a2e; line-height: 1.6; background: #fff; overflow-x: hidden; }
+
+  .widget { max-width: 720px; margin: 0 auto; padding: 16px; }
+
+  .search-box { display: flex; gap: 0; }
+  .search-box input { flex: 1; padding: 12px 16px; border: 2px solid #d0d5e8; border-right: none; border-radius: 8px 0 0 8px; font-size: 1rem; outline: none; background: #fff; }
+  .search-box input:focus { border-color: #4361ee; }
+  .search-box button { padding: 12px 22px; background: #4361ee; color: #fff; border: 2px solid #4361ee; border-radius: 0 8px 8px 0; font-size: 0.95rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .search-box button:hover { background: #3451d1; border-color: #3451d1; }
+  .search-box button:disabled { opacity: 0.7; cursor: not-allowed; }
+  .search-hint { font-size: 0.8rem; color: #aaa; margin-top: 6px; }
+
+  #search-error { color: #e74c3c; margin-top: 14px; font-size: 0.9rem; }
+  #search-loading { margin-top: 20px; color: #555; font-size: 0.9rem; display: none; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #d0d5e8; border-top-color: #4361ee; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .result-card { border: 1px solid #e0e4ef; border-radius: 10px; margin-top: 16px; overflow: hidden; }
+  .result-header { padding: 18px 20px 14px; border-bottom: 1px solid #eee; }
+  .result-header h2 { font-size: 1.2rem; margin-bottom: 2px; }
+  .result-header .meta { color: #666; font-size: 0.88rem; }
+  .status-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-left: 6px; vertical-align: middle; }
+  .status-active { background: #d4edda; color: #155724; }
+  .status-revoked { background: #f8d7da; color: #721c24; }
+  .status-unknown { background: #fff3cd; color: #856404; }
+
+  .result-section { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
+  .result-section:last-child { border-bottom: none; }
+  .result-section h3 { font-size: 0.85rem; color: #4361ee; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+
+  .fin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .fin-item { text-align: center; }
+  .fin-item .label { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
+  .fin-item .value { font-size: 1.15rem; font-weight: 700; color: #1a1a2e; }
+  .fin-item .value.revenue { color: #27ae60; }
+  .fin-item .value.expense { color: #e74c3c; }
+
+  .breakdown { margin-top: 12px; }
+  .breakdown-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.85rem; }
+  .breakdown-row .breakdown-label { color: #666; }
+  .breakdown-row .breakdown-value { font-weight: 600; color: #1a1a2e; }
+
+  .personnel-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .personnel-table th { text-align: left; color: #888; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px; padding: 0 0 6px; border-bottom: 1px solid #eee; }
+  .personnel-table td { padding: 6px 0; border-bottom: 1px solid #f5f5f5; }
+  .personnel-table tr:last-child td { border-bottom: none; }
+  .personnel-table .name { font-weight: 600; }
+  .personnel-table .title-col { color: #666; }
+  .personnel-table .comp { text-align: right; font-weight: 600; white-space: nowrap; }
+  .show-more { color: #4361ee; cursor: pointer; font-size: 0.85rem; margin-top: 6px; display: inline-block; border: none; background: none; font-family: inherit; }
+  .show-more:hover { text-decoration: underline; }
+
+  .state-list { list-style: none; }
+  .state-list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.85rem; }
+  .state-list li:last-child { border-bottom: none; }
+  .state-name { font-weight: 600; }
+  .state-status { color: #27ae60; }
+  .state-reg { color: #888; font-size: 0.8rem; }
+  .no-data { color: #999; font-style: italic; font-size: 0.85rem; }
+
+  .data-sources { display: flex; flex-wrap: wrap; gap: 8px; }
+  .source-tag { background: #f0f4ff; color: #4361ee; padding: 3px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: 600; }
+
+  .powered-by { text-align: center; margin-top: 12px; font-size: 0.75rem; color: #bbb; }
+  .powered-by a { color: #4361ee; text-decoration: none; }
+  .powered-by a:hover { text-decoration: underline; }
+
+  @media (max-width: 500px) {
+    .fin-grid { grid-template-columns: repeat(2, 1fr); }
+    .personnel-table .title-col { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="widget">
+  <div class="search-box">
+    <input type="text" id="search-input" placeholder="Enter EIN (e.g. 53-0196605)" autofocus>
+    <button id="search-btn" onclick="doSearch()">Verify</button>
+  </div>
+  <p class="search-hint">Enter a 9-digit EIN to verify nonprofit status</p>
+
+  <div id="search-loading"><span class="spinner"></span>Searching IRS records...</div>
+  <div id="search-error"></div>
+  <div id="search-results"></div>
+  <div id="powered" class="powered-by" style="display:none">Powered by <a href="https://verify.georgelaufenberg.com" target="_blank">NonprofitVerify</a></div>
+</div>
+
+<script>
+var BASE = location.origin;
+
+function fmt(n) {
+  if (n == null) return '--';
+  if (Math.abs(n) >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B';
+  if (Math.abs(n) >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K';
+  return '$' + n.toLocaleString();
+}
+function fmtComp(n) { return (n == null || n === 0) ? '--' : '$' + n.toLocaleString(); }
+function titleCase(s) { return s ? s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : ''; }
+function statusClass(s) { return s === 'active' ? 'status-active' : s === 'revoked' ? 'status-revoked' : 'status-unknown'; }
+
+function renderResults(d) {
+  var f = d.financials || {}, rb = f.revenue_breakdown || {}, eb = f.expense_breakdown || {};
+  var personnel = d.personnel || [], states = d.state_registrations || [], sources = d.data_sources || {};
+  var showN = 5, hasMore = personnel.length > showN;
+
+  var rows = personnel.map(function(p, i) {
+    return '<tr class="person-row"' + (i >= showN ? ' style="display:none"' : '') + '>' +
+      '<td class="name">' + titleCase(p.name) + '</td>' +
+      '<td class="title-col">' + titleCase(p.title) + '</td>' +
+      '<td class="comp">' + fmtComp(p.compensation) + '</td></tr>';
+  }).join('');
+
+  var bk = '';
+  if (rb.contributions_and_grants != null || rb.program_service_revenue != null) {
+    bk += '<div class="breakdown">' +
+      '<div class="breakdown-row"><span class="breakdown-label">Contributions & Grants</span><span class="breakdown-value">' + fmt(rb.contributions_and_grants) + '</span></div>' +
+      '<div class="breakdown-row"><span class="breakdown-label">Program Service Revenue</span><span class="breakdown-value">' + fmt(rb.program_service_revenue) + '</span></div>' +
+      '<div class="breakdown-row"><span class="breakdown-label">Investment Income</span><span class="breakdown-value">' + fmt(rb.investment_income) + '</span></div>' +
+      '<div class="breakdown-row"><span class="breakdown-label">Other Revenue</span><span class="breakdown-value">' + fmt(rb.other_revenue) + '</span></div></div>';
+  }
+  if (eb.program_services != null || eb.fundraising != null) {
+    bk += '<div class="breakdown" style="margin-top:10px">' +
+      '<div class="breakdown-row"><span class="breakdown-label">Program Services</span><span class="breakdown-value">' + fmt(eb.program_services) + '</span></div>' +
+      '<div class="breakdown-row"><span class="breakdown-label">Management & General</span><span class="breakdown-value">' + fmt(eb.management_and_general) + '</span></div>' +
+      '<div class="breakdown-row"><span class="breakdown-label">Fundraising</span><span class="breakdown-value">' + fmt(eb.fundraising) + '</span></div></div>';
+  }
+
+  var stHtml = states.length > 0
+    ? '<ul class="state-list">' + states.map(function(s) {
+        return '<li><span><span class="state-name">' + s.state + '</span> ' +
+          (s.registration_number ? '<span class="state-reg">#' + s.registration_number + '</span>' : '') +
+          '</span><span class="state-status">' + s.status + '</span></li>';
+      }).join('') + '</ul>'
+    : '<p class="no-data">No state registrations found</p>';
+
+  var tags = '';
+  if (sources.irs_bmf) tags += '<span class="source-tag">IRS BMF ' + sources.irs_bmf + '</span>';
+  if (sources.irs_990) tags += '<span class="source-tag">990 Filing ' + sources.irs_990 + '</span>';
+  if (sources.propublica) tags += '<span class="source-tag">ProPublica</span>';
+  if (sources.state_registries) tags += '<span class="source-tag">State Registries</span>';
+
+  return '<div class="result-card">' +
+    '<div class="result-header"><h2>' + d.legal_name + ' <span class="status-badge ' + statusClass(d.status) + '">' + d.status + '</span></h2>' +
+    '<div class="meta">EIN ' + d.ein + ' &middot; ' + (d.subsection || 'Unknown') + ' &middot; ' + d.city + ', ' + d.state +
+    (d.ruling_date ? ' &middot; Ruling: ' + d.ruling_date : '') + '</div></div>' +
+
+    (f.revenue != null ? '<div class="result-section"><h3>Financials' + (f.tax_year ? ' (' + f.tax_year + ')' : '') + '</h3>' +
+      '<div class="fin-grid">' +
+      '<div class="fin-item"><div class="label">Revenue</div><div class="value revenue">' + fmt(f.revenue) + '</div></div>' +
+      '<div class="fin-item"><div class="label">Expenses</div><div class="value expense">' + fmt(f.expenses) + '</div></div>' +
+      '<div class="fin-item"><div class="label">Assets</div><div class="value">' + fmt(f.assets) + '</div></div>' +
+      '<div class="fin-item"><div class="label">Liabilities</div><div class="value">' + fmt(f.liabilities) + '</div></div>' +
+      '</div>' + bk + '</div>' : '') +
+
+    (personnel.length > 0 ? '<div class="result-section"><h3>Key Personnel</h3>' +
+      '<table class="personnel-table"><thead><tr><th>Name</th><th class="title-col">Title</th><th style="text-align:right">Compensation</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      (hasMore ? '<button class="show-more" onclick="togglePersonnel(this)">Show all ' + personnel.length + ' people</button>' : '') +
+      '</div>' : '') +
+
+    '<div class="result-section"><h3>State Registrations</h3>' + stHtml + '</div>' +
+
+    '<div class="result-section"><h3>Data Sources</h3><div class="data-sources">' + tags + '</div>' +
+    (d.propublica_url ? '<p style="margin-top:8px;font-size:0.8rem"><a href="' + d.propublica_url + '" target="_blank" style="color:#4361ee">View on ProPublica</a></p>' : '') +
+    '</div></div>';
+}
+
+function togglePersonnel(btn) {
+  var rows = btn.closest('.result-section').querySelectorAll('.person-row');
+  var hidden = rows[5] && rows[5].style.display === 'none';
+  rows.forEach(function(r, i) { if (i >= 5) r.style.display = hidden ? '' : 'none'; });
+  btn.textContent = hidden ? 'Show fewer' : 'Show all ' + rows.length + ' people';
+  notifyParent();
+}
+
+function notifyParent() {
+  try {
+    var h = document.querySelector('.widget').scrollHeight;
+    window.parent.postMessage({ type: 'nonprofitverify-resize', height: h }, '*');
+  } catch(e) {}
+}
+
+async function doSearch() {
+  var input = document.getElementById('search-input');
+  var ein = input.value.trim();
+  if (!ein) return;
+
+  var btn = document.getElementById('search-btn');
+  var loading = document.getElementById('search-loading');
+  var errorEl = document.getElementById('search-error');
+  var resultsEl = document.getElementById('search-results');
+  var powered = document.getElementById('powered');
+
+  errorEl.textContent = '';
+  resultsEl.innerHTML = '';
+  powered.style.display = 'none';
+  loading.style.display = 'block';
+  btn.disabled = true;
+  btn.textContent = 'Searching...';
+  notifyParent();
+
+  try {
+    var res = await fetch(BASE + '/api/v1/public/verify/' + encodeURIComponent(ein));
+    var data = await res.json();
+    if (!res.ok) {
+      errorEl.textContent = data.detail || 'Something went wrong.';
+      return;
+    }
+    resultsEl.innerHTML = renderResults(data);
+    powered.style.display = 'block';
+  } catch (err) {
+    errorEl.textContent = 'Network error. Please try again.';
+  } finally {
+    loading.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = 'Verify';
+    notifyParent();
+  }
+}
+
+document.getElementById('search-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doSearch();
+});
+
+// Notify parent of initial height
+notifyParent();
+</script>
+
+</body>
+</html>

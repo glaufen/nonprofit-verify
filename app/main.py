@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from app.database import close_pool, get_pool
@@ -29,6 +30,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
 app.include_router(public_router, prefix="/api/v1", tags=["Public"])
 app.include_router(verify_router, prefix="/api/v1", tags=["Verify"])
 app.include_router(billing_router, prefix="/api/v1", tags=["Billing"])
@@ -37,6 +45,18 @@ app.include_router(billing_router, prefix="/api/v1", tags=["Billing"])
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def landing_page():
     return (STATIC_DIR / "index.html").read_text()
+
+
+@app.get("/embed", include_in_schema=False)
+async def embed_widget(request: Request):
+    html = (STATIC_DIR / "embed.html").read_text()
+    return HTMLResponse(
+        content=html,
+        headers={
+            "X-Frame-Options": "ALLOWALL",
+            "Content-Security-Policy": "frame-ancestors *",
+        },
+    )
 
 
 @app.get("/success", response_class=HTMLResponse, include_in_schema=False)
