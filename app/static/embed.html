@@ -6,10 +6,11 @@
 <title>NonprofitVerify</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a1a2e; line-height: 1.6; background: #fff; overflow-x: hidden; }
+  html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a1a2e; line-height: 1.6; background: #fff; height: 500px; overflow: hidden; }
 
-  .widget { max-width: 720px; margin: 0 auto; padding: 16px; }
+  .widget { height: 500px; display: flex; flex-direction: column; max-width: 720px; margin: 0 auto; padding: 16px; }
 
+  .search-area { flex-shrink: 0; }
   .search-box { display: flex; gap: 0; }
   .search-box input { flex: 1; padding: 12px 16px; border: 2px solid #d0d5e8; border-right: none; border-radius: 8px 0 0 8px; font-size: 1rem; outline: none; background: #fff; }
   .search-box input:focus { border-color: #4361ee; }
@@ -18,12 +19,24 @@
   .search-box button:disabled { opacity: 0.7; cursor: not-allowed; }
   .search-hint { font-size: 0.8rem; color: #aaa; margin-top: 6px; }
 
+  .results-scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 12px; position: relative; scrollbar-width: thin; scrollbar-color: #d0d5e8 transparent; }
+  .results-scroll::-webkit-scrollbar { width: 6px; }
+  .results-scroll::-webkit-scrollbar-track { background: transparent; }
+  .results-scroll::-webkit-scrollbar-thumb { background: #d0d5e8; border-radius: 3px; }
+  .results-scroll::-webkit-scrollbar-thumb:hover { background: #b0b5c8; }
+
+  .fade-bottom { position: relative; }
+  .fade-bottom::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: linear-gradient(transparent, #fff); pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+  .fade-bottom.has-overflow::after { opacity: 1; }
+
   #search-error { color: #e74c3c; margin-top: 14px; font-size: 0.9rem; }
   #search-loading { margin-top: 20px; color: #555; font-size: 0.9rem; display: none; }
   .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #d0d5e8; border-top-color: #4361ee; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .result-card { border: 1px solid #e0e4ef; border-radius: 10px; margin-top: 16px; overflow: hidden; }
+  .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 0.9rem; text-align: center; padding: 40px 20px; }
+
+  .result-card { border: 1px solid #e0e4ef; border-radius: 10px; overflow: hidden; }
   .result-header { padding: 18px 20px 14px; border-bottom: 1px solid #eee; }
   .result-header h2 { font-size: 1.2rem; margin-bottom: 2px; }
   .result-header .meta { color: #666; font-size: 0.88rem; }
@@ -69,7 +82,7 @@
   .data-sources { display: flex; flex-wrap: wrap; gap: 8px; }
   .source-tag { background: #f0f4ff; color: #4361ee; padding: 3px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: 600; }
 
-  .powered-by { text-align: center; margin-top: 12px; font-size: 0.75rem; color: #bbb; }
+  .powered-by { flex-shrink: 0; text-align: center; padding-top: 8px; font-size: 0.75rem; color: #bbb; }
   .powered-by a { color: #4361ee; text-decoration: none; }
   .powered-by a:hover { text-decoration: underline; }
 
@@ -82,15 +95,24 @@
 <body>
 
 <div class="widget">
-  <div class="search-box">
-    <input type="text" id="search-input" placeholder="Enter EIN (e.g. 53-0196605)" autofocus>
-    <button id="search-btn" onclick="doSearch()">Verify</button>
+  <div class="search-area">
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="Enter EIN (e.g. 53-0196605)" autofocus>
+      <button id="search-btn" onclick="doSearch()">Verify</button>
+    </div>
+    <p class="search-hint">Enter a 9-digit EIN to verify nonprofit status</p>
   </div>
-  <p class="search-hint">Enter a 9-digit EIN to verify nonprofit status</p>
 
+  <div id="empty-state" class="empty-state">Search for a nonprofit by EIN to see tax status, financials, and more</div>
   <div id="search-loading"><span class="spinner"></span>Searching IRS records...</div>
   <div id="search-error"></div>
-  <div id="search-results"></div>
+
+  <div id="results-wrapper" class="fade-bottom" style="display:none; flex:1; min-height:0;">
+    <div class="results-scroll" id="results-scroll">
+      <div id="search-results"></div>
+    </div>
+  </div>
+
   <div id="powered" class="powered-by" style="display:none">Powered by <a href="https://verify.georgelaufenberg.com" target="_blank">NonprofitVerify</a></div>
 </div>
 
@@ -107,6 +129,18 @@ function fmt(n) {
 function fmtComp(n) { return (n == null || n === 0) ? '--' : '$' + n.toLocaleString(); }
 function titleCase(s) { return s ? s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : ''; }
 function statusClass(s) { return s === 'active' ? 'status-active' : s === 'revoked' ? 'status-revoked' : 'status-unknown'; }
+
+function checkOverflow() {
+  var el = document.getElementById('results-scroll');
+  var wrapper = document.getElementById('results-wrapper');
+  if (el && wrapper) {
+    if (el.scrollHeight > el.clientHeight) {
+      wrapper.classList.add('has-overflow');
+    } else {
+      wrapper.classList.remove('has-overflow');
+    }
+  }
+}
 
 function renderResults(d) {
   var f = d.financials || {}, rb = f.revenue_breakdown || {}, eb = f.expense_breakdown || {};
@@ -180,13 +214,7 @@ function togglePersonnel(btn) {
   var hidden = rows[5] && rows[5].style.display === 'none';
   rows.forEach(function(r, i) { if (i >= 5) r.style.display = hidden ? '' : 'none'; });
   btn.textContent = hidden ? 'Show fewer' : 'Show all ' + rows.length + ' people';
-  notifyParent();
-}
-
-function notifyParent() {
-  try {
-    window.parent.postMessage({ type: 'resize', height: document.body.scrollHeight }, '*');
-  } catch(e) {}
+  checkOverflow();
 }
 
 async function doSearch() {
@@ -199,31 +227,39 @@ async function doSearch() {
   var errorEl = document.getElementById('search-error');
   var resultsEl = document.getElementById('search-results');
   var powered = document.getElementById('powered');
+  var wrapper = document.getElementById('results-wrapper');
+  var empty = document.getElementById('empty-state');
 
   errorEl.textContent = '';
   resultsEl.innerHTML = '';
+  wrapper.style.display = 'none';
+  empty.style.display = 'none';
   powered.style.display = 'none';
   loading.style.display = 'block';
   btn.disabled = true;
   btn.textContent = 'Searching...';
-  notifyParent();
 
   try {
     var res = await fetch(BASE + '/api/v1/public/verify/' + encodeURIComponent(ein));
     var data = await res.json();
     if (!res.ok) {
       errorEl.textContent = data.detail || 'Something went wrong.';
+      empty.style.display = 'flex';
       return;
     }
     resultsEl.innerHTML = renderResults(data);
+    wrapper.style.display = 'flex';
     powered.style.display = 'block';
+    // Scroll results to top and check overflow after render
+    document.getElementById('results-scroll').scrollTop = 0;
+    requestAnimationFrame(checkOverflow);
   } catch (err) {
     errorEl.textContent = 'Network error. Please try again.';
+    empty.style.display = 'flex';
   } finally {
     loading.style.display = 'none';
     btn.disabled = false;
     btn.textContent = 'Verify';
-    notifyParent();
   }
 }
 
@@ -231,8 +267,17 @@ document.getElementById('search-input').addEventListener('keydown', function(e) 
   if (e.key === 'Enter') doSearch();
 });
 
-// Notify parent of initial height
-notifyParent();
+// Hide fade when user scrolls to bottom
+document.getElementById('results-scroll').addEventListener('scroll', function() {
+  var el = this;
+  var wrapper = document.getElementById('results-wrapper');
+  var atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
+  if (atBottom) {
+    wrapper.classList.remove('has-overflow');
+  } else if (el.scrollHeight > el.clientHeight) {
+    wrapper.classList.add('has-overflow');
+  }
+});
 </script>
 
 </body>
