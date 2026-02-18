@@ -185,8 +185,7 @@ function togglePersonnel(btn) {
 
 function notifyParent() {
   try {
-    var h = document.querySelector('.widget').scrollHeight;
-    window.parent.postMessage({ type: 'nonprofitverify-resize', height: h }, '*');
+    window.parent.postMessage({ type: 'resize', height: document.body.scrollHeight }, '*');
   } catch(e) {}
 }
 
