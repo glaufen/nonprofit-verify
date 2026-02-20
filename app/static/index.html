@@ -17,10 +17,19 @@
     --cream-light: #eae8e2;
     --cream-lighter: #f3f1ed;
     --teal: #485957;
+    --navy: #1e2b3c;
     --white: #ffffff;
     --font-heading: "Lora", Georgia, "Times New Roman", serif;
     --font-body: "Pontano Sans", "Segoe UI", Roboto, sans-serif;
   }
+
+  /* Header */
+  .site-header { background: var(--white); border-bottom: 1px solid var(--cream); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; max-width: 100%; }
+  .site-header .brand { font-family: var(--font-heading); font-size: 1.05rem; font-weight: 600; color: var(--accent-hover); text-decoration: none; }
+  .site-header .brand:hover { text-decoration: none; color: var(--accent); }
+  .site-header nav { display: flex; gap: 24px; font-size: 0.875rem; font-weight: 700; }
+  .site-header nav a { color: var(--dark-light); text-decoration: none; }
+  .site-header nav a:hover { color: var(--dark); text-decoration: none; }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--font-body); color: var(--dark); line-height: 1.8; background: var(--white); }
@@ -145,7 +154,7 @@
   .key-display { background: var(--teal); color: var(--cream-light); padding: 16px; border-radius: 4px; font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.9rem; word-break: break-all; max-width: 500px; margin: 12px auto 0; }
   .key-display .warning { color: var(--accent); font-size: 0.85rem; margin-top: 8px; font-family: var(--font-body); }
 
-  footer { background: var(--teal); color: var(--cream); padding: 48px 20px 40px; text-align: center; }
+  footer { background: var(--navy); color: var(--cream); padding: 48px 20px 40px; text-align: center; }
   footer a { color: var(--accent); }
   footer .built-by { font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 12px; color: var(--white); }
   footer .built-by a { color: var(--white); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.3); }
@@ -166,6 +175,15 @@
 </style>
 </head>
 <body>
+
+<header class="site-header">
+  <a href="https://theprincipaluncertainty.com" class="brand">George Laufenberg, Ph.D. | The Principal Uncertainty</a>
+  <nav>
+    <a href="#pricing">Pricing</a>
+    <a href="/docs">API Docs</a>
+    <a href="#free-signup">Get API Key</a>
+  </nav>
+</header>
 
 <section class="hero">
   <h1>Verify Any US Nonprofit</h1>
